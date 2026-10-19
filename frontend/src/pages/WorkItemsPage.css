@@ -240,6 +240,15 @@
   line-height: 1.45;
 }
 
+.work-table td:first-child a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.work-table td:first-child a:hover {
+  text-decoration: underline;
+}
+
 .work-item-id {
   margin-top: 5px;
   color: #526c58;

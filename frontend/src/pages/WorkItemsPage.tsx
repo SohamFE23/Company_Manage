@@ -1,58 +1,76 @@
-
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { apiRequest, ApiError } from "../lib/api";
-import { useAuth } from "../auth/AuthContext";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/useAuth";
+import { ApiError, apiRequest } from "../lib/api";
+import type {
+  Priority,
+  Team,
+  TeamMember,
+  WorkItem,
+  WorkItemList,
+  WorkStatus,
+} from "../types";
+import { label } from "../types";
 import "./WorkItemsPage.css";
 
-type WorkStatus = "open" | "in_progress" | "blocked" | "resolved";
-type Priority = "low" | "medium" | "high" | "critical";
+const statuses: WorkStatus[] = ["open", "in_progress", "blocked", "resolved"];
+const priorities: Priority[] = ["low", "medium", "high", "critical"];
 
-type WorkItem = {
-  id: number;
-  title: string;
-  description?: string | null;
-  status: WorkStatus;
-  priority: Priority;
-  team_id: number;
-  assignee_id?: number | null;
-  version: number;
-  created_at: string;
-  updated_at: string;
-};
+function useTeamMembers(teamId: number | null) {
+  const [result, setResult] = useState<{
+    teamId: number;
+    members: TeamMember[];
+  } | null>(null);
+  const [failure, setFailure] = useState<{
+    teamId: number;
+    message: string;
+  } | null>(null);
 
-type Team = {
-  id: number;
-  name: string;
-};
+  useEffect(() => {
+    let active = true;
+    if (teamId === null) return;
 
-type ListResponse =
-  | WorkItem[]
-  | { items: WorkItem[]; total?: number };
+    apiRequest<TeamMember[]>(`/api/teams/${teamId}/members`)
+      .then((result) => {
+        if (active) {
+          setResult({
+            teamId,
+            members: result.filter((member) => member.is_active),
+          });
+          setFailure(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setFailure({
+            teamId,
+            message:
+              err instanceof ApiError
+                ? err.message
+                : "Could not load the team's active members.",
+          });
+        }
+      });
 
-const statuses: WorkStatus[] = [
-  "open",
-  "in_progress",
-  "blocked",
-  "resolved",
-];
+    return () => {
+      active = false;
+    };
+  }, [teamId]);
 
-const priorities: Priority[] = [
-  "low",
-  "medium",
-  "high",
-  "critical",
-];
-
-function label(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return {
+    members: result?.teamId === teamId ? result.members : [],
+    error: failure?.teamId === teamId ? failure.message : "",
+  };
 }
 
 export default function WorkItemsPage() {
   const { user } = useAuth();
-
+  const navigate = useNavigate();
   const [items, setItems] = useState<WorkItem[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [teamsError, setTeamsError] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [page, setPage] = useState(0);
@@ -60,63 +78,95 @@ export default function WorkItemsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [createTeamId, setCreateTeamId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingItem, setEditingItem] = useState<WorkItem | null>(null);
-  const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [updating, setUpdating] = useState(false);
   const pageSize = 10;
 
-  const loadItems = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const selectedTeamId = showCreate
+    ? createTeamId
+    : editingItem?.team_id ?? null;
+  const { members, error: membersError } = useTeamMembers(selectedTeamId);
+  const canCreate = Boolean(
+    user?.is_admin ||
+      user?.teams.some((team) =>
+        ["member", "manager", "admin"].includes(team.role),
+      ),
+  );
 
-    try {
-      const params = new URLSearchParams({
-        skip: String(page * pageSize),
-        limit: String(pageSize),
+  const canEdit = (item: WorkItem) =>
+    Boolean(
+      user?.is_admin ||
+        user?.teams.some(
+          (team) =>
+            team.id === item.team_id &&
+            ["member", "manager", "admin"].includes(team.role),
+        ),
+    );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    let active = true;
+    if (search !== debouncedSearch) return;
+
+    const params = new URLSearchParams({
+      skip: String(page * pageSize),
+      limit: String(pageSize),
+    });
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    if (status) params.set("status", status);
+    if (priority) params.set("priority", priority);
+
+    apiRequest<WorkItemList>(`/api/work-items?${params.toString()}`)
+      .then((result) => {
+        if (active) {
+          setItems(result.items);
+          setTotal(result.total);
+          setError("");
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Could not load work items.",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
 
-      if (search.trim()) params.set("search", search.trim());
-      if (status) params.set("status", status);
-      if (priority) params.set("priority", priority);
-
-      const result = await apiRequest<ListResponse>(
-        `/api/work-items?${params.toString()}`,
-      );
-
-      if (Array.isArray(result)) {
-        setItems(result);
-        setTotal(result.length);
-      } else {
-        setItems(result.items);
-        setTotal(result.total ?? result.items.length);
-      }
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not load work items.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, status, priority, refreshKey]);
+    return () => {
+      active = false;
+    };
+  }, [page, search, debouncedSearch, status, priority, refreshKey]);
 
   useEffect(() => {
-    void loadItems();
-  }, [loadItems]);
-
-  useEffect(() => {
+    let active = true;
     apiRequest<Team[]>("/api/teams")
-      .then(setTeams)
-      .catch(() => setTeams([]));
+      .then((result) => {
+        if (active) setTeams(result);
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setTeamsError(
+            err instanceof ApiError ? err.message : "Could not load teams.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-
-  useEffect(() => {
-    setPage(0);
-  }, [search, status, priority]);
 
   async function createItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,7 +180,7 @@ export default function WorkItemsPage() {
     const assigneeValue = String(form.get("assignee_id") ?? "").trim();
     const itemPriority = String(form.get("priority")) as Priority;
 
-    if (!title || title.length < 3) {
+    if (title.length < 3) {
       setError("Title must contain at least 3 characters.");
       return;
     }
@@ -140,25 +190,24 @@ export default function WorkItemsPage() {
       return;
     }
 
-    const payload = {
-      title,
-      description: description || null,
-      team_id: teamId,
-      assignee_id: assigneeValue ? Number(assigneeValue) : null,
-      priority: itemPriority,
-    };
-
     setSaving(true);
-
     try {
       await apiRequest<WorkItem>("/api/work-items", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          team_id: teamId,
+          assignee_id: assigneeValue ? Number(assigneeValue) : null,
+          priority: itemPriority,
+        }),
       });
 
       setShowCreate(false);
+      setCreateTeamId(null);
       setPage(0);
       setNotice("Work item created successfully.");
+      setLoading(true);
       setRefreshKey((value) => value + 1);
     } catch (err) {
       setError(
@@ -191,25 +240,23 @@ export default function WorkItemsPage() {
       return;
     }
 
-    const payload = {
-      title,
-      description: description || null,
-      assignee_id: assigneeValue ? Number(assigneeValue) : null,
-      status: newStatus,
-      priority: newPriority,
-      expected_version: item.version,
-    };
-
     setUpdating(true);
-
     try {
       await apiRequest<WorkItem>(`/api/work-items/${item.id}`, {
         method: "PATCH",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          assignee_id: assigneeValue ? Number(assigneeValue) : null,
+          status: newStatus,
+          priority: newPriority,
+          expected_version: item.version,
+        }),
       });
 
       setEditingItem(null);
       setNotice(`OPS-${item.id} updated successfully.`);
+      setLoading(true);
       setRefreshKey((value) => value + 1);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -229,6 +276,7 @@ export default function WorkItemsPage() {
   }
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
   return (
     <main className="work-page">
       <header className="work-heading">
@@ -240,16 +288,19 @@ export default function WorkItemsPage() {
           </p>
         </div>
 
-        <button
-          className="work-primary-button"
-          onClick={() => {
-            setError("");
-            setShowCreate((value) => !value);
-          }}
-          type="button"
-        >
-          {showCreate ? "Cancel" : "+ New work item"}
-        </button>
+        {canCreate && (
+          <button
+            className="work-primary-button"
+            onClick={() => {
+              setError("");
+              setEditingItem(null);
+              setShowCreate((value) => !value);
+            }}
+            type="button"
+          >
+            {showCreate ? "Cancel" : "+ New work item"}
+          </button>
+        )}
       </header>
 
       <section className="work-toolbar">
@@ -257,7 +308,11 @@ export default function WorkItemsPage() {
           <span>Search</span>
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setLoading(true);
+              setSearch(event.target.value);
+              setPage(0);
+            }}
             placeholder="Search title or description..."
           />
         </label>
@@ -266,7 +321,11 @@ export default function WorkItemsPage() {
           <span>Status</span>
           <select
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => {
+              setLoading(true);
+              setStatus(event.target.value);
+              setPage(0);
+            }}
           >
             <option value="">All statuses</option>
             {statuses.map((value) => (
@@ -279,7 +338,11 @@ export default function WorkItemsPage() {
           <span>Priority</span>
           <select
             value={priority}
-            onChange={(event) => setPriority(event.target.value)}
+            onChange={(event) => {
+              setLoading(true);
+              setPriority(event.target.value);
+              setPage(0);
+            }}
           >
             <option value="">All priorities</option>
             {priorities.map((value) => (
@@ -298,7 +361,10 @@ export default function WorkItemsPage() {
           <span>{error}</span>
           <button
             type="button"
-            onClick={() => setRefreshKey((value) => value + 1)}
+            onClick={() => {
+              setLoading(true);
+              setRefreshKey((value) => value + 1);
+            }}
           >
             Retry
           </button>
@@ -317,46 +383,41 @@ export default function WorkItemsPage() {
           <form className="work-form" onSubmit={createItem}>
             <label className="work-form-wide">
               Title
-              <input
-                name="title"
-                required
-                minLength={3}
-                maxLength={200}
-                placeholder="e.g. Investigate payment mismatch"
-              />
+              <input name="title" required minLength={3} maxLength={200} />
             </label>
-
             <label className="work-form-wide">
               Description
-              <textarea
-                name="description"
-                rows={3}
-                placeholder="What happened, and what needs to be done?"
-              />
+              <textarea name="description" rows={3} />
             </label>
-
             <label>
               Team
-              <select name="team_id" required defaultValue="">
+              <select
+                name="team_id"
+                required
+                value={createTeamId ?? ""}
+                onChange={(event) =>
+                  setCreateTeamId(
+                    event.target.value ? Number(event.target.value) : null,
+                  )
+                }
+              >
                 <option value="" disabled>Select a team</option>
                 {teams.map((team) => (
-                  <option value={team.id} key={team.id}>
-                    {team.name}
+                  <option value={team.id} key={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Assignee (optional)
+              <select name="assignee_id" defaultValue="" disabled={!createTeamId}>
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option value={member.user_id} key={member.user_id}>
+                    {member.name} ({member.email})
                   </option>
                 ))}
               </select>
             </label>
-
-            <label>
-              Assignee ID (optional)
-              <input
-                name="assignee_id"
-                type="number"
-                min={1}
-                placeholder="User ID"
-              />
-            </label>
-
             <label>
               Priority
               <select name="priority" defaultValue="medium">
@@ -365,7 +426,12 @@ export default function WorkItemsPage() {
                 ))}
               </select>
             </label>
-
+            {teamsError && (
+              <p className="work-error work-form-wide" role="alert">{teamsError}</p>
+            )}
+            {membersError && (
+              <p className="work-error work-form-wide" role="alert">{membersError}</p>
+            )}
             <div className="work-form-actions">
               <button
                 type="button"
@@ -377,23 +443,15 @@ export default function WorkItemsPage() {
               <button
                 type="submit"
                 className="work-primary-button"
-                disabled={saving || teams.length === 0}
+                disabled={saving || teams.length === 0 || Boolean(teamsError)}
               >
                 {saving ? "Creating..." : "Create item"}
               </button>
             </div>
-
-            {teams.length === 0 && (
-              <p className="work-muted work-form-wide">
-                No teams loaded. Confirm that your account belongs to a team
-                and that GET /api/teams is working.
-              </p>
-            )}
           </form>
         </section>
       )}
 
-      
       {editingItem && (
         <section className="work-create-panel">
           <div className="work-section-heading">
@@ -402,7 +460,6 @@ export default function WorkItemsPage() {
               <h2>Edit work item</h2>
             </div>
           </div>
-
           <form
             className="work-form"
             onSubmit={(event) => updateItem(event, editingItem)}
@@ -417,7 +474,6 @@ export default function WorkItemsPage() {
                 defaultValue={editingItem.title}
               />
             </label>
-
             <label className="work-form-wide">
               Description
               <textarea
@@ -426,40 +482,39 @@ export default function WorkItemsPage() {
                 defaultValue={editingItem.description ?? ""}
               />
             </label>
-
             <label>
               Status
               <select name="status" defaultValue={editingItem.status}>
                 {statuses.map((value) => (
-                  <option key={value} value={value}>
-                    {label(value)}
-                  </option>
+                  <option key={value} value={value}>{label(value)}</option>
                 ))}
               </select>
             </label>
-
             <label>
               Priority
               <select name="priority" defaultValue={editingItem.priority}>
                 {priorities.map((value) => (
-                  <option key={value} value={value}>
-                    {label(value)}
+                  <option key={value} value={value}>{label(value)}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Assignee
+              <select
+                name="assignee_id"
+                defaultValue={editingItem.assignee_id ?? ""}
+              >
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option value={member.user_id} key={member.user_id}>
+                    {member.name} ({member.email})
                   </option>
                 ))}
               </select>
             </label>
-
-            <label className="work-form-wide">
-              Assignee ID
-              <input
-                name="assignee_id"
-                type="number"
-                min={1}
-                defaultValue={editingItem.assignee_id ?? ""}
-                placeholder="Enter user ID or leave blank"
-              />
-            </label>
-
+            {membersError && (
+              <p className="work-error work-form-wide" role="alert">{membersError}</p>
+            )}
             <div className="work-form-actions">
               <button
                 type="button"
@@ -469,41 +524,15 @@ export default function WorkItemsPage() {
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 className="work-primary-button"
-                disabled={updating}
+                disabled={updating || Boolean(membersError)}
               >
                 {updating ? "Saving..." : "Save changes"}
               </button>
             </div>
           </form>
-        </section>
-      )}
-
-      {selectedItem && (
-        <section className="work-create-panel">
-          <div className="work-section-heading">
-            <div>
-              <p className="work-eyebrow">OPS-{selectedItem.id}</p>
-              <h2>{selectedItem.title}</h2>
-            </div>
-            <button
-              type="button"
-              className="work-secondary-button"
-              onClick={() => setSelectedItem(null)}
-            >
-              Close
-            </button>
-          </div>
-          <p>{selectedItem.description || "No description provided."}</p>
-          <p>
-            {label(selectedItem.status)} · {label(selectedItem.priority)} ·{" "}
-            {selectedItem.assignee_id == null
-              ? "Unassigned"
-              : `User #${selectedItem.assignee_id}`}
-          </p>
         </section>
       )}
 
@@ -540,7 +569,7 @@ export default function WorkItemsPage() {
                 {items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <strong>{item.title}</strong>
+                      <strong><Link to={`/work-items/${item.id}`}>{item.title}</Link></strong>
                       <span className="work-item-id">OPS-{item.id}</span>
                       {item.description && (
                         <span className="work-row-description">
@@ -548,10 +577,7 @@ export default function WorkItemsPage() {
                         </span>
                       )}
                     </td>
-                    <td>
-                      {teams.find((team) => team.id === item.team_id)?.name
-                        ?? `Team ${item.team_id}`}
-                    </td>
+                    <td>{item.team_name ?? `Team ${item.team_id}`}</td>
                     <td>
                       <span className={`work-status status-${item.status}`}>
                         {label(item.status)}
@@ -562,51 +588,33 @@ export default function WorkItemsPage() {
                         {label(item.priority)}
                       </span>
                     </td>
+                    <td>{item.assignee_name ?? "Unassigned"}</td>
                     <td>
-                      {item.assignee_id == null
-                        ? "Unassigned"
-                        : `User #${item.assignee_id}`}
-                    </td>
-                    
-                    <td>
-                    <div className="work-row-actions">
+                      <div className="work-row-actions">
                         <span>v{item.version}</span>
-
-                        <button
-                        type="button"
-                        className="work-row-button"
-                        onClick={() => {
-                            setShowCreate(false);
-                            setEditingItem(item);
-                            setError("");
-                            setNotice("");
-                        }}
-                        >
-                        Edit
-                        </button>
-
-                        <button
+                        {canEdit(item) && (
+                          <button
                             type="button"
                             className="work-row-button"
-                          onClick={() => setSelectedItem(item)}
-                            >
-                            View details
-                        </button>
+                            onClick={() => {
+                              setShowCreate(false);
+                              setEditingItem(item);
+                              setError("");
+                              setNotice("");
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
-                        type="button"
-                        className="work-row-button"
-                        onClick={() => {
-                            setShowCreate(false);
-                            setEditingItem(item);
-                            setError("");
-                            setNotice("");
-                        }}
+                          type="button"
+                          className="work-row-button"
+                          onClick={() => navigate(`/work-items/${item.id}`)}
                         >
-                        Change status
+                          View details
                         </button>
-                    </div>
+                      </div>
                     </td>
-
                   </tr>
                 ))}
               </tbody>
@@ -615,15 +623,16 @@ export default function WorkItemsPage() {
         )}
 
         <footer className="work-pagination">
-          <span>
-            Page {page + 1} of {pageCount}
-          </span>
+          <span>Page {page + 1} of {pageCount}</span>
           <div>
             <button
               className="work-secondary-button"
               type="button"
               disabled={page === 0 || loading}
-              onClick={() => setPage((value) => Math.max(0, value - 1))}
+              onClick={() => {
+                setLoading(true);
+                setPage((value) => Math.max(0, value - 1));
+              }}
             >
               Previous
             </button>
@@ -631,7 +640,10 @@ export default function WorkItemsPage() {
               className="work-secondary-button"
               type="button"
               disabled={page + 1 >= pageCount || loading}
-              onClick={() => setPage((value) => value + 1)}
+              onClick={() => {
+                setLoading(true);
+                setPage((value) => value + 1);
+              }}
             >
               Next
             </button>

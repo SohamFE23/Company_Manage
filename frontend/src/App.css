@@ -281,7 +281,8 @@ h2 {
   background: #fffefa;
 }
 
-.ops-navigation button {
+.ops-navigation button,
+.ops-navigation a {
   padding: 9px 12px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -289,10 +290,13 @@ h2 {
   background: transparent;
   font-size: 12px;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .ops-navigation button:hover,
-.ops-navigation button.ops-nav-active {
+.ops-navigation a:hover,
+.ops-navigation button.ops-nav-active,
+.ops-navigation a.ops-nav-active {
   border-color: #dfe5d7;
   color: #17211d;
   background: #e9eee2;

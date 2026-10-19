@@ -1,23 +1,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "../auth/AuthContext";
+import { Link } from "react-router-dom";
+import { useAuth } from "../auth/useAuth";
 import { apiRequest, ApiError } from "../lib/api";
+import type { WorkItem, WorkItemList, WorkStatus } from "../types";
 import "./DashboardPage.css";
 
-type WorkItem = {
-  id: number;
-  title: string;
-  description?: string | null;
-  status: string;
-  priority: string;
-  team_id: number;
-  assignee_id?: number | null;
-  version: number;
-  created_at: string;
-  updated_at: string;
-};
-
-type StatusFilter = "all" | "open" | "in_progress" | "blocked" | "resolved";
+type StatusFilter = "all" | WorkStatus;
 
 const statusLabel: Record<string, string> = {
   open: "Open",
@@ -55,7 +44,7 @@ function riskRank(item: WorkItem) {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const [items, setItems] = useState<WorkItem[]>([]);
   const [search, setSearch] = useState("");
@@ -65,17 +54,16 @@ export default function DashboardPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const loadItems = useCallback(async () => {
-    setLoading(true);
     setError("");
 
     try {
       // This is a first-page request. The backend remains responsible
       // for authorization, filtering, and pagination.
-      const result = await apiRequest<WorkItem[]>(
+      const result = await apiRequest<WorkItemList>(
         "/api/work-items?limit=100",
       );
 
-      setItems(Array.isArray(result) ? result : []);
+      setItems(result.items);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -88,7 +76,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    void loadItems();
+    void Promise.resolve().then(loadItems);
   }, [loadItems, reloadKey]);
 
   const filteredItems = useMemo(() => {
@@ -147,30 +135,6 @@ export default function DashboardPage() {
 
   return (
     <main className="control-room">
-      <header className="control-header">
-        <div className="control-brand">
-          <div className="control-logo">O</div>
-          <div>
-            <p className="control-overline">OPS / OPERATIONS DESK</p>
-            <div className="control-brand-name">OpsFlow</div>
-          </div>
-        </div>
-
-        <div className="control-user">
-          <div className="control-user-copy">
-            <strong>{user?.name ?? "User"}</strong>
-            <span>{user?.is_admin ? "Administrator" : "Team workspace"}</span>
-          </div>
-          <button
-            className="control-signout"
-            onClick={logout}
-            type="button"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-
       <section className="control-intro">
         <div>
           <p className="control-overline">YOUR OPERATIONAL SNAPSHOT</p>
@@ -183,7 +147,10 @@ export default function DashboardPage() {
         <button
           className="control-refresh"
           type="button"
-          onClick={() => setReloadKey((value) => value + 1)}
+          onClick={() => {
+            setLoading(true);
+            setReloadKey((value) => value + 1);
+          }}
           disabled={loading}
         >
           ↻ {loading ? "Refreshing…" : "Refresh data"}
@@ -222,7 +189,10 @@ export default function DashboardPage() {
           <p>{error}</p>
           <button
             type="button"
-            onClick={() => setReloadKey((value) => value + 1)}
+            onClick={() => {
+              setLoading(true);
+              setReloadKey((value) => value + 1);
+            }}
           >
             Try again
           </button>
@@ -296,10 +266,12 @@ export default function DashboardPage() {
                     <div className="attention-content">
                       <div className="attention-meta">
                         <span>OPS-{item.id}</span>
-                        <span>{teamName(item.team_id)}</span>
+                        <span>{item.team_name ?? teamName(item.team_id)}</span>
                       </div>
 
-                      <h3>{item.title}</h3>
+                      <h3>
+                        <Link to={`/work-items/${item.id}`}>{item.title}</Link>
+                      </h3>
 
                       {item.description && (
                         <p className="attention-description">
@@ -371,7 +343,11 @@ export default function DashboardPage() {
             ) : (
               <div className="movement-list">
                 {recentItems.map((item) => (
-                  <div className="movement-entry" key={item.id}>
+                  <Link
+                    className="movement-entry"
+                    key={item.id}
+                    to={`/work-items/${item.id}`}
+                  >
                     <div className="movement-icon">↗</div>
                     <div className="movement-copy">
                       <strong>{item.title}</strong>
@@ -380,15 +356,14 @@ export default function DashboardPage() {
                         {formatDate(item.updated_at)}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
 
             <p className="control-muted movement-note">
-              These are recently updated items, not a full audit log. The
-              activity timeline will use recorded backend events once that
-              endpoint is implemented.
+              These are recently updated items. Open a work item to see its
+              recorded activity timeline.
             </p>
           </section>
         </aside>

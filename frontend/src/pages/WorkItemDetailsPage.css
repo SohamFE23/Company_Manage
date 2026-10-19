@@ -216,9 +216,11 @@
 }
 
 .details-secondary {
+  display: inline-block;
   border-color: #d8d6cd;
   color: #17211d;
   background: #fffefa;
+  text-decoration: none;
 }
 
 .details-empty {

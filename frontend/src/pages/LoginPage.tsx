@@ -1,6 +1,6 @@
 
 import { useState, type FormEvent } from "react";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 
 const demoAccounts = [
   { label: "Administrator", email: "admin@opsflow.local" },

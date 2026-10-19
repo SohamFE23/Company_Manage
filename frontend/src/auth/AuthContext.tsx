@@ -1,38 +1,13 @@
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 
-import { apiRequest } from "../lib/api";
-
-export type TeamAccess = {
-  id: number;
-  name: string;
-  role: string;
-};
-
-export type CurrentUser = {
-  id: number;
-  name: string;
-  email: string;
-  is_admin: boolean;
-  teams: TeamAccess[];
-};
-
-type AuthContextValue = {
-  user: CurrentUser | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { apiLogin, apiRequest } from "../lib/api";
+import { AuthContext, type CurrentUser } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -57,34 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const body = new URLSearchParams();
-      body.set("username", email.trim().toLowerCase());
-      body.set("password", password);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body,
-        },
-      );
-
-      if (!response.ok) {
-        let message = "Unable to sign in.";
-        try {
-          const result = await response.json();
-          message = result.detail ?? message;
-        } catch {
-          // Keep the fallback message.
-        }
-        throw new Error(message);
-      }
-
-      const result: { access_token: string; token_type: string } =
-        await response.json();
+      const result = await apiLogin(email, password);
 
       sessionStorage.setItem("opsflow_access_token", result.access_token);
 
@@ -134,14 +82,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider.");
-  }
-
-  return context;
 }
