@@ -1,0 +1,136 @@
+.team-details-heading h1 {
+  overflow-wrap: anywhere;
+}
+
+.team-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.team-overview > div:first-child {
+  min-width: 0;
+}
+
+.team-overview > div:first-child p:last-child {
+  margin: 0;
+  color: #4c554e;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.team-overview-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: #73786f;
+  font-size: 11px;
+}
+
+.team-add-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.team-table-wrap {
+  overflow-x: auto;
+}
+
+.team-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+
+.team-table th {
+  padding: 12px;
+  border-bottom: 1px solid #deddd5;
+  color: #73786f;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.team-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #eeece5;
+  vertical-align: middle;
+}
+
+.team-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.team-table td:first-child {
+  min-width: 135px;
+}
+
+.team-table select {
+  min-width: 115px;
+}
+
+.team-you {
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.team-status {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.team-active {
+  color: #276443;
+  background: #e1f0e5;
+}
+
+.team-inactive {
+  color: #87391f;
+  background: #fff0e9;
+}
+
+.team-muted {
+  color: #73786f;
+}
+
+@media (max-width: 760px) {
+  .team-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-overview-meta {
+    justify-content: flex-start;
+  }
+
+  .team-add-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .team-add-form button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .team-add-form {
+    grid-template-columns: 1fr;
+  }
+
+  .team-add-form button {
+    grid-column: auto;
+  }
+}

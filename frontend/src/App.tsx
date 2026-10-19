@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import WorkItemsPage from "./pages/WorkItemsPage";
 import WorkItemDetailsPage from "./pages/WorkItemDetailsPage";
+import TeamsPage from "./pages/TeamsPage";
+import TeamDetailsPage from "./pages/TeamDetailsPage";
 import "./App.css";
 
 function AuthenticatedApp() {
@@ -55,6 +57,8 @@ function AuthenticatedApp() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/work-items" element={<WorkItemsPage />} />
         <Route path="/work-items/:id" element={<WorkItemDetailsPage />} />
+        <Route path="/teams" element={<TeamsPage />} />
+        <Route path="/teams/:id" element={<TeamDetailsPage />} />
         <Route
           path="*"
           element={
