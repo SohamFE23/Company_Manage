@@ -1,6 +1,6 @@
-# OpsFlow
+# OpsWork
 
-OpsFlow is a team-based operations work management application. It provides a
+OpsWork is a team-based operations work management application. It provides a
 React single-page frontend and a FastAPI backend backed by PostgreSQL, with
 JWT authentication, team-scoped permissions, work-item activity history, and
 optimistic concurrency for edits.

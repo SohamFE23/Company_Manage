@@ -373,7 +373,7 @@ export default function DashboardPage() {
         <span>OPS / CONTROL ROOM</span>
         <span>
           {user?.teams.length ?? 0} team
-          {(user?.teams.length ?? 0) === 1 ? "" : "s"} · Data from OpsFlow API
+          {(user?.teams.length ?? 0) === 1 ? "" : "s"} · Data from OpsWork
         </span>
       </footer>
     </main>

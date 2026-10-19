@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <main className="app-loading" role="alert">
           <h1>Something went wrong.</h1>
-          <p>Please reload OpsFlow to continue.</p>
+          <p>Please reload OpsWork to continue.</p>
           <button type="button" onClick={() => window.location.reload()}>
             Reload
           </button>

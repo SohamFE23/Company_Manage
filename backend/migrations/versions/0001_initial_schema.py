@@ -1,4 +1,4 @@
-"""Create the baseline OpsFlow schema.
+"""Create the baseline OpsWork schema.
 
 Revision ID: 0001_initial_schema
 Revises:

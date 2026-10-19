@@ -149,7 +149,7 @@ def login(
     db: Session = Depends(get_db),
 ):
     # OAuth2PasswordRequestForm calls the field "username".
-    # For OpsFlow, users enter their email address in that field.
+    # For OpsWork, users enter their email address in that field.
     email = form.username.strip().lower()
     client_ip = request.client.host if request.client else "unknown"
     _check_login_rate_limit(email, client_ip)

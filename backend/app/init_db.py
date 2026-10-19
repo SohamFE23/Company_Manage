@@ -9,7 +9,7 @@ from app.database import Base, engine
 
 def main() -> None:
     Base.metadata.create_all(bind=engine)
-    print("OpsFlow database tables created successfully.")
+    print("OpsWork database tables created successfully.")
 
 
 if __name__ == "__main__":

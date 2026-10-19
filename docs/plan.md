@@ -1,4 +1,4 @@
-# OpsFlow: Implementation Plan (Commits 3 to 7)
+# OpsWork: Implementation Plan (Commits 3 to 7)
 
 This file is the working brief for GitHub Copilot (agent mode). Commits 1 and 2 are already done. Implement **one commit at a time**, in order, and stop after each so it can be reviewed and committed.
 
@@ -331,7 +331,7 @@ Every endpoint depends on `get_current_user`.
 
 ### Docs
 
-- Root `README.md`: what OpsFlow is, architecture, local setup (backend, frontend, DB), env var table (`APP_ENV`, `DATABASE_URL`, `JWT_SECRET_KEY`, `TOKEN_EXPIRE_HOURS`, `CORS_ORIGINS`, `LOG_LEVEL`, `VITE_API_BASE_URL`), the role and permission matrix, how to create the first admin (`python -m app.create_admin`), migrations, tests, deployment notes and a short security checklist.
+- Root `README.md`: what OpsWork is, architecture, local setup (backend, frontend, DB), env var table (`APP_ENV`, `DATABASE_URL`, `JWT_SECRET_KEY`, `TOKEN_EXPIRE_HOURS`, `CORS_ORIGINS`, `LOG_LEVEL`, `VITE_API_BASE_URL`), the role and permission matrix, how to create the first admin (`python -m app.create_admin`), migrations, tests, deployment notes and a short security checklist.
 
 ### Verify
 

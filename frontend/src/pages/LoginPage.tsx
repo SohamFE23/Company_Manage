@@ -38,7 +38,7 @@ export default function LoginPage() {
       <section className="auth-card">
         <div className="brand-mark">O</div>
         <p className="eyebrow">OPERATIONS UNDER PRESSURE</p>
-        <h1>Welcome to OpsFlow</h1>
+        <h1>Welcome to OpsWork</h1>
         <p className="muted">
           Sign in to manage work, coordinate teams, and track important changes.
         </p>

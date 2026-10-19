@@ -17,22 +17,22 @@ logging.basicConfig(
     level=settings.log_level,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-logger = logging.getLogger("opsflow")
+logger = logging.getLogger("opswork")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    logger.info("OpsFlow API starting (env=%s)", settings.environment)
+    logger.info("OpsWork API starting (env=%s)", settings.environment)
     yield
     engine.dispose()
-    logger.info("OpsFlow API stopped")
+    logger.info("OpsWork API stopped")
 
 
 # Interactive docs are useful locally but should not be public in production.
 docs_enabled = not settings.is_production
 
 app = FastAPI(
-    title="OpsFlow API",
+    title="OpsWork API",
     description="Operations management backend",
     version="1.0.0",
     lifespan=lifespan,
@@ -67,7 +67,7 @@ app.include_router(work_items_router)
 
 @app.get("/")
 def root():
-    return {"message": "OpsFlow API is running"}
+    return {"message": "OpsWork API is running"}
 
 
 @app.get("/api/health")
@@ -79,7 +79,7 @@ def health_check():
         logger.exception("Health check failed")
         return JSONResponse(
             status_code=503,
-            content={"status": "unhealthy", "application": "OpsFlow"},
+            content={"status": "unhealthy", "application": "OpsWork"},
         )
 
-    return {"status": "healthy", "application": "OpsFlow"}
+    return {"status": "healthy", "application": "OpsWork"}

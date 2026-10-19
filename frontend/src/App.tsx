@@ -25,7 +25,7 @@ function AuthenticatedApp() {
   return (
     <>
       <nav className="ops-navigation" aria-label="Main navigation">
-        <span className="ops-navigation-brand">OPS /</span>
+        <span className="ops-navigation-brand">OpsWork</span>
 
         <NavLink to="/" end className={({ isActive }) => isActive ? "ops-nav-active" : ""}>
           Dashboard

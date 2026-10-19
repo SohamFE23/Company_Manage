@@ -20,7 +20,7 @@ password_hasher = PasswordHash.recommended()
 # These accounts are for local development only.
 # Each account receives the same password you enter when running the script.
 DEMO_USERS = [
-    ("OpsFlow Admin", "admin@opsflow.local", True, "admin"),
+    ("OpsWork Admin", "admin@opsflow.local", True, "admin"),
     ("Demo Manager", "manager@opsflow.local", False, "manager"),
     ("Demo Employee", "employee@opsflow.local", False, "member"),
     ("Demo Viewer", "viewer@opsflow.local", False, "viewer"),
@@ -41,7 +41,7 @@ def main():
         if team is None:
             team = Team(
                 name="Operations",
-                description="Demo team for the OpsFlow challenge",
+                description="Demo team for OpsWork",
             )
             db.add(team)
             db.flush()

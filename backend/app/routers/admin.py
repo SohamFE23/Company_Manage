@@ -10,7 +10,7 @@ from app.auth import password_hash, require_admin
 from app.database import get_db
 from app.models import TeamMembership, User
 
-logger = logging.getLogger("opsflow")
+logger = logging.getLogger("opswork")
 router = APIRouter(prefix="/api/admin/users", tags=["Administration"])
 
 

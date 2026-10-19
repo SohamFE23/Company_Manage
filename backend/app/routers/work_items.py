@@ -23,7 +23,7 @@ from app.schemas import (
     WorkItemUpdate,
 )
 
-logger = logging.getLogger("opsflow")
+logger = logging.getLogger("opswork")
 router = APIRouter(prefix="/api/work-items", tags=["Work Items"])
 
 WorkStatus = Literal["open", "in_progress", "blocked", "resolved"]
