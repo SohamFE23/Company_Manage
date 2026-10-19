@@ -48,6 +48,20 @@ export type TeamMember = {
   is_active: boolean;
 };
 
+export type AdminUser = {
+  id: number;
+  name: string;
+  email: string;
+  is_admin: boolean;
+  is_active: boolean;
+  team_count: number;
+};
+
+export type AdminUserList = {
+  items: AdminUser[];
+  total: number;
+};
+
 export function label(value: string): string {
   return value.replaceAll("_", " ").replace(/\b\w/g, (character) =>
     character.toUpperCase(),

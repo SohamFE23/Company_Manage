@@ -8,6 +8,7 @@ import WorkItemsPage from "./pages/WorkItemsPage";
 import WorkItemDetailsPage from "./pages/WorkItemDetailsPage";
 import TeamsPage from "./pages/TeamsPage";
 import TeamDetailsPage from "./pages/TeamDetailsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import "./App.css";
 
 function AuthenticatedApp() {
@@ -59,6 +60,7 @@ function AuthenticatedApp() {
         <Route path="/work-items/:id" element={<WorkItemDetailsPage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/teams/:id" element={<TeamDetailsPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route
           path="*"
           element={

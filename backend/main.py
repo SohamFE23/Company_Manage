@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.auth import router as auth_router
 from app.config import settings
 from app.database import engine
+from app.routers.admin import router as admin_router
 from app.routers.teams import router as teams_router
 from app.routers.work_items import router as work_items_router
 
@@ -49,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(teams_router)
 app.include_router(work_items_router)
 
