@@ -4,10 +4,10 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
-
+from app.auth import get_current_user
 from app.database import get_db
-from app.models import WorkItem, Team, User
-from app.schemas import WorkItemCreate, WorkItemUpdate, WorkItemResponse
+from app.models import WorkItem, Team, User, ActivityEvent, ActivityEvent, TeamMembership, User
+from app.schemas import WorkItemCreate, WorkItemUpdate, WorkItemResponse,ActivityEventResponse
 
 router = APIRouter(prefix="/api/work-items", tags=["Work Items"])
 
@@ -133,3 +133,62 @@ def update_work_item(
     except Exception:
         db.rollback()
         raise
+
+@router.get(
+    "/{item_id}/activity",
+    response_model=list[ActivityEventResponse],
+)
+def get_work_item_activity(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # 1. Find the work item.
+    item = db.query(WorkItem).filter(
+        WorkItem.id == item_id
+    ).first()
+
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Work item not found",
+        )
+
+    # 2. Check whether the user can access this team's item.
+    if not current_user.is_admin:
+        membership = db.query(TeamMembership).filter(
+            TeamMembership.user_id == current_user.id,
+            TeamMembership.team_id == item.team_id,
+        ).first()
+
+        if membership is None:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have access to this work item",
+            )
+
+    # 3. Fetch activity records and the actor's name.
+    rows = (
+        db.query(ActivityEvent, User.name)
+        .outerjoin(User, ActivityEvent.actor_id == User.id)
+        .filter(ActivityEvent.work_item_id == item_id)
+        .order_by(
+            ActivityEvent.created_at.asc(),
+            ActivityEvent.id.asc(),
+        )
+        .all()
+    )
+
+    # 4. Return the fields expected by the frontend.
+    return [
+        {
+            "id": event.id,
+            "action": event.action,
+            "description": event.description,
+            "actor_name": actor_name,
+            "created_at": event.created_at,
+            "old_value": event.old_value,
+            "new_value": event.new_value,
+        }
+        for event, actor_name in rows
+    ]

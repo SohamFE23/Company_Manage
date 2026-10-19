@@ -1,25 +1,20 @@
 
-import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models import User, Team, TeamMembership
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("JWT_SECRET_KEY is missing from backend/.env")
-
+SECRET_KEY = settings.jwt_secret_key
 ALGORITHM = "HS256"
+TOKEN_EXPIRE_HOURS = settings.token_expire_hours
 TOKEN_EXPIRE_HOURS = 8
 
 password_hash = PasswordHash.recommended()

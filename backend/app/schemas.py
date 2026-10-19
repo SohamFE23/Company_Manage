@@ -35,3 +35,14 @@ class WorkItemResponse(BaseModel):
     version: int
     created_at: datetime
     updated_at: datetime
+
+class ActivityEventResponse(BaseModel):
+    id: int
+    action: str
+    description: str
+    actor_name: str | None = None
+    created_at: datetime
+    old_value: str | None = None
+    new_value: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)

@@ -1,15 +1,44 @@
 
-from datetime import datetime
+from datetime import datetime,timezone
 
 from sqlalchemy import (
     String, Text, DateTime, ForeignKey,
-    Integer, Boolean
+    Integer, Boolean,Column, 
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
+class ActivityEvent(Base):
+    __tablename__ = "activity_events"
 
+    id = Column(Integer, primary_key=True, index=True)
+
+    work_item_id = Column(
+        Integer,
+        ForeignKey("work_items.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    actor_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    action = Column(String(50), nullable=False)
+    description = Column(Text, nullable=False)
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
 class User(Base):
     __tablename__ = "users"
 
@@ -22,7 +51,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
+        DateTime, default=datetime.now(timezone.utc)
     )
 
 
