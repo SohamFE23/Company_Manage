@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from typing import Literal
 
@@ -6,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class WorkItemCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str = Field(min_length=3, max_length=200)
     description: str | None = None
     team_id: int
@@ -14,6 +15,8 @@ class WorkItemCreate(BaseModel):
 
 
 class WorkItemUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str | None = Field(default=None, min_length=3, max_length=200)
     description: str | None = None
     assignee_id: int | None = None
@@ -35,14 +38,20 @@ class WorkItemResponse(BaseModel):
     version: int
     created_at: datetime
     updated_at: datetime
+    team_name: str | None = None
+    assignee_name: str | None = None
 
-class ActivityEventResponse(BaseModel):
+
+class WorkItemList(BaseModel):
+    items: list[WorkItemResponse]
+    total: int
+
+
+class ActivityResponse(BaseModel):
     id: int
     action: str
     description: str
-    actor_name: str | None = None
+    actor_name: str | None
+    old_value: str | None
+    new_value: str | None
     created_at: datetime
-    old_value: str | None = None
-    new_value: str | None = None
-
-    model_config = ConfigDict(from_attributes=True)
