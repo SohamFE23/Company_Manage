@@ -1,6 +1,13 @@
-backend/.env
+.env
+.env.*
+!.env.example
 backend/.venv/
 frontend/node_modules/
 frontend/dist/
 __pycache__/
-*.pyc
+*.py[cod]
+*.db
+*.db-journal
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

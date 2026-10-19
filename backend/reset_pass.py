@@ -1,4 +1,9 @@
 
+import os
+
+if os.getenv("APP_ENV", "development").strip().lower() == "production":
+    raise SystemExit("Demo passwords cannot be reset in production.")
+
 from getpass import getpass
 
 from sqlalchemy import select

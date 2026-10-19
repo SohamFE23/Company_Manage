@@ -1,8 +1,11 @@
 
 from datetime import datetime, timedelta, timezone
+from collections import defaultdict, deque
+from threading import Lock
+from time import monotonic
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pwdlib import PasswordHash
 from sqlalchemy import select
@@ -15,7 +18,10 @@ from app.models import User, Team, TeamMembership
 SECRET_KEY = settings.jwt_secret_key
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = settings.token_expire_hours
-TOKEN_EXPIRE_HOURS = 8
+LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_MAX_FAILURES = 5
+_login_failures: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+_login_failures_lock = Lock()
 
 password_hash = PasswordHash.recommended()
 
@@ -103,14 +109,50 @@ def require_team_manager(
     return user
 
 
+def _check_login_rate_limit(email: str, client_ip: str) -> None:
+    now = monotonic()
+    key = (email, client_ip)
+    with _login_failures_lock:
+        failures = _login_failures[key]
+        while failures and now - failures[0] >= LOGIN_WINDOW_SECONDS:
+            failures.popleft()
+        if len(failures) >= LOGIN_MAX_FAILURES:
+            retry_after = max(
+                1, int(LOGIN_WINDOW_SECONDS - (now - failures[0]))
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many sign-in attempts. Try again later.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+
+def _record_login_failure(email: str, client_ip: str) -> None:
+    now = monotonic()
+    key = (email, client_ip)
+    with _login_failures_lock:
+        failures = _login_failures[key]
+        while failures and now - failures[0] >= LOGIN_WINDOW_SECONDS:
+            failures.popleft()
+        failures.append(now)
+
+
+def _clear_login_failures(email: str, client_ip: str) -> None:
+    with _login_failures_lock:
+        _login_failures.pop((email, client_ip), None)
+
+
 @router.post("/login")
 def login(
+    request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
     # OAuth2PasswordRequestForm calls the field "username".
     # For OpsFlow, users enter their email address in that field.
     email = form.username.strip().lower()
+    client_ip = request.client.host if request.client else "unknown"
+    _check_login_rate_limit(email, client_ip)
 
     user = db.scalar(
         select(User).where(User.email == email)
@@ -121,12 +163,14 @@ def login(
         or not user.is_active
         or not password_hash.verify(form.password, user.password_hash)
     ):
+        _record_login_failure(email, client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    _clear_login_failures(email, client_ip)
     return {
         "access_token": create_access_token(user.id),
         "token_type": "bearer",

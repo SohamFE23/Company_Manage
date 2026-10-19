@@ -73,24 +73,26 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="demo-section">
-          <p className="demo-title">Local demo accounts</p>
-          {demoAccounts.map((account) => (
-            <button
-              className="demo-account"
-              type="button"
-              key={account.email}
-              onClick={() => setEmail(account.email)}
-            >
-              <span>{account.label}</span>
-              <span className="muted">{account.email}</span>
-            </button>
-          ))}
-          <p className="muted demo-note">
-            Demo accounts work only after you run the local seed script.
-            Select an account, then enter your demo password.
-          </p>
-        </div>
+        {!import.meta.env.PROD && (
+          <div className="demo-section">
+            <p className="demo-title">Local demo accounts</p>
+            {demoAccounts.map((account) => (
+              <button
+                className="demo-account"
+                type="button"
+                key={account.email}
+                onClick={() => setEmail(account.email)}
+              >
+                <span>{account.label}</span>
+                <span className="muted">{account.email}</span>
+              </button>
+            ))}
+            <p className="muted demo-note">
+              Demo accounts work only after you run the local seed script.
+              Select an account, then enter your demo password.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

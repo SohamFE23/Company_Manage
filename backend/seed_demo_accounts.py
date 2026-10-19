@@ -1,4 +1,9 @@
 
+import os
+
+if os.getenv("APP_ENV", "development").strip().lower() == "production":
+    raise SystemExit("Demo accounts cannot be seeded in production.")
+
 from getpass import getpass
 
 from sqlalchemy import select

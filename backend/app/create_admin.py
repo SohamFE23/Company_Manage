@@ -9,28 +9,34 @@ from app.models import User
 
 password_hash = PasswordHash.recommended()
 
-name = input("Admin name: ").strip()
-email = input("Admin email: ").strip().lower()
-password = getpass.getpass("Admin password (hidden): ")
 
-if not name or len(password) < 12:
-    raise SystemExit("Name is required; password must be at least 12 characters.")
+def main() -> None:
+    name = input("Admin name: ").strip()
+    email = input("Admin email: ").strip().lower()
+    password = getpass.getpass("Admin password (hidden): ")
 
-with SessionLocal() as db:
-    existing = db.scalar(select(User).where(User.email == email))
+    if not name or len(password) < 12:
+        raise SystemExit("Name is required; password must be at least 12 characters.")
 
-    if existing:
-        raise SystemExit("That email already exists; no account was changed.")
+    with SessionLocal() as db:
+        existing = db.scalar(select(User).where(User.email == email))
 
-    admin = User(
-        name=name,
-        email=email,
-        password_hash=password_hash.hash(password),
-        is_active=True,
-        is_admin=True,
-    )
+        if existing:
+            raise SystemExit("That email already exists; no account was changed.")
 
-    db.add(admin)
-    db.commit()
+        admin = User(
+            name=name,
+            email=email,
+            password_hash=password_hash.hash(password),
+            is_active=True,
+            is_admin=True,
+        )
 
-print("Administrator created.")
+        db.add(admin)
+        db.commit()
+
+    print("Administrator created.")
+
+
+if __name__ == "__main__":
+    main()
