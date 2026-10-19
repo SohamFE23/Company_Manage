@@ -20,10 +20,10 @@ password_hasher = PasswordHash.recommended()
 # These accounts are for local development only.
 # Each account receives the same password you enter when running the script.
 DEMO_USERS = [
-    ("OpsWork Admin", "admin@opsflow.local", True, "admin"),
-    ("Demo Manager", "manager@opsflow.local", False, "manager"),
-    ("Demo Employee", "employee@opsflow.local", False, "member"),
-    ("Demo Viewer", "viewer@opsflow.local", False, "viewer"),
+    ("OpsWork Admin", "admin@opswork.local", True, "admin"),
+    ("Demo Manager", "manager@opswork.local", False, "manager"),
+    ("Demo Employee", "employee@opswork.local", False, "member"),
+    ("Demo Viewer", "viewer@opswork.local", False, "viewer"),
 ]
 
 

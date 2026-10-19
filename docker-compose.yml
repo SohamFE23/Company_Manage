@@ -24,6 +24,7 @@ services:
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:-production}
+      JUDGE_DEMO_ENABLED: ${JUDGE_DEMO_ENABLED:-false}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-opsflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-opsflow}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
       TOKEN_EXPIRE_HOURS: ${TOKEN_EXPIRE_HOURS:-8}

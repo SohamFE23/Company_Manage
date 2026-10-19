@@ -79,6 +79,7 @@ account seeding in production. With Docker Compose, run it interactively using
 | `TOKEN_EXPIRE_HOURS` | Access-token lifetime in hours. | `8` |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins; set explicit origins in production. | `http://localhost:5173` |
 | `LOG_LEVEL` | Backend logging level. | `INFO` |
+| `JUDGE_DEMO_ENABLED` | Temporary provisioning switch for production judge accounts. Keep `false` except while provisioning. | `false` |
 | `VITE_API_BASE_URL` | API origin compiled into the frontend build. | `http://localhost:8000` |
 | `POSTGRES_DB` | Docker Compose database name. | `opsflow` |
 | `POSTGRES_USER` | Docker Compose PostgreSQL user. | `opsflow` |
@@ -158,6 +159,31 @@ strong secrets and database credentials, restrict network access, and manage
 backups and migrations as part of deployment. A multi-instance API deployment
 must replace the in-memory login rate limiter with a shared store such as Redis.
 
+### Private judge demo accounts
+
+The deployed login page does not display shared demo passwords. Create four
+temporary judge accounts (global admin, team manager, member, and viewer) with
+separate random passwords and realistic sample work items. Run provisioning
+only against the isolated evaluation deployment; the command prints each
+password once so you can distribute it privately:
+
+1. Set `JUDGE_DEMO_ENABLED=true` in the deployment environment for the
+   provisioning window, then run
+   `docker compose up -d --force-recreate backend` so the backend receives it.
+2. Run `docker compose exec backend python seed_judge_accounts.py` and securely
+   deliver the displayed account/password pairs to the judges.
+3. Set `JUDGE_DEMO_ENABLED=false` and run
+   `docker compose up -d --force-recreate backend` again.
+4. When the evaluation ends, run
+   `docker compose exec backend python seed_judge_accounts.py --revoke` to
+   deactivate the judge accounts.
+
+The accounts are `judge.admin@opswork.example`,
+`judge.manager@opswork.example`, `judge.member@opswork.example`, and
+`judge.viewer@opswork.example`. Re-running the provisioning command rotates
+their passwords and prints new credentials. Never publish those passwords or
+use these accounts in a deployment containing real customer data.
+
 ## Security checklist
 
 - Set `APP_ENV=production`, a unique 32+ character `JWT_SECRET_KEY`, and
@@ -169,4 +195,6 @@ must replace the in-memory login rate limiter with a shared store such as Redis.
   stamping an existing schema.
 - Do not expose local demo accounts or development initialization scripts in
   production.
+- Keep judge demo provisioning disabled except for the intentional one-time
+  setup, distribute credentials privately, and revoke the accounts after review.
 - Use Redis or another shared limiter for multiple backend instances.

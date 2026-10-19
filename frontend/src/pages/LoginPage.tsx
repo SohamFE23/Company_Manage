@@ -3,10 +3,10 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "../auth/useAuth";
 
 const demoAccounts = [
-  { label: "Administrator", email: "admin@opsflow.local" },
-  { label: "Manager", email: "manager@opsflow.local" },
-  { label: "Employee", email: "employee@opsflow.local" },
-  { label: "Viewer", email: "viewer@opsflow.local" },
+  { label: "Administrator", email: "admin@opswork.local" },
+  { label: "Manager", email: "manager@opswork.local" },
+  { label: "Employee", email: "employee@opswork.local" },
+  { label: "Viewer", email: "viewer@opswork.local" },
 ];
 
 export default function LoginPage() {

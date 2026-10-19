@@ -13,11 +13,16 @@ from app.database import SessionLocal
 from app.models import User
 
 DEMO_EMAILS = [
+    "admin@opswork.local",
+    "manager@opswork.local",
+    "employee@opswork.local",
+    "viewer@opswork.local",
     "admin@opsflow.local",
     "manager@opsflow.local",
     "employee@opsflow.local",
     "viewer@opsflow.local",
 ]
+
 
 def main():
     password = getpass("Enter a new demo password (minimum 12 characters): ")
@@ -35,14 +40,10 @@ def main():
             select(User).where(User.email.in_(DEMO_EMAILS))
         ).all()
 
-        found_emails = {user.email.lower() for user in users}
-        missing = set(DEMO_EMAILS) - found_emails
-
-        if missing:
+        if not users:
             raise SystemExit(
-                "These accounts were not found in this database: "
-                + ", ".join(sorted(missing))
-                + ". Check backend/.env and the database connection."
+                "No OpsWork demo accounts were found in this database. "
+                "Check backend/.env and the database connection."
             )
 
         for user in users:
